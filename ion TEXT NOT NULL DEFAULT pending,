@@ -1,0 +1,12 @@
+           List of relations
+ Schema |     Name      | Type  | Owner 
+--------+---------------+-------+-------
+ public | audit_log     | table | gamp
+ public | game_players  | table | gamp
+ public | games         | table | gamp
+ public | rounds        | table | gamp
+ public | submissions   | table | gamp
+ public | users         | table | gamp
+ public | word_database | table | gamp
+(7 rows)
+
