@@ -55,8 +55,10 @@ func (w *WordService) DeleteWord(ctx context.Context, wordID string) error {
 	return nil
 }
 
-func (w *WordService) LookupWord(ctx context.Context, word string, category string, letter string) (bool, error) {
+func (w *WordService) LookupWord(ctx context.Context, word string, category string) (bool, error) {
 	var verify string
+	var letter string
+	
 	letter = strings.ToUpper(string(word[0]))
 
 	err := w.DBConn.QueryRowContext(ctx, "SELECT id FROM word_database WHERE word = $1 AND category = $2 AND starts_with = $3 AND is_approved = true", word, category, letter).Scan(&verify)

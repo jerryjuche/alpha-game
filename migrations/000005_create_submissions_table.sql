@@ -4,6 +4,6 @@ CREATE TABLE submissions (
     submitted_by UUID REFERENCES users(id),
     category TEXT NOT NULL,
     word_submitted TEXT NOT NULL,
-    is_status TEXT DEFAULT 'pending',
+    status TEXT DEFAULT 'pending',
     points_awarded INTEGER
 )

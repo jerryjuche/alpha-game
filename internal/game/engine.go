@@ -9,6 +9,7 @@ import (
 	"time"
 
 	ws "github.com/jerryjuche/alpha-game/internal/websocket"
+	"github.com/jerryjuche/alpha-game/internal/word"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -34,13 +35,15 @@ type GameEngine struct {
 	DBConn      *sqlx.DB
 	Hub         *ws.Hub
 	ActiveGames map[string]*Game
+	WordService *word.WordService
 }
 
-func NewGameEngine(db *sqlx.DB, h *ws.Hub) *GameEngine {
+func NewGameEngine(db *sqlx.DB, h *ws.Hub, w *word.WordService) *GameEngine {
 	return &GameEngine{
 		DBConn:      db,
 		Hub:         h,
 		ActiveGames: make(map[string]*Game),
+		WordService: w,
 	}
 }
 

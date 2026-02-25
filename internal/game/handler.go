@@ -77,3 +77,43 @@ func (h *GameHandler) StartGame(w http.ResponseWriter, r *http.Request) {
 		"game_id": gameID,
 	})
 }
+
+func (h *GameHandler) Submission(w http.ResponseWriter, r *http.Request) {
+	playerID := r.Context().Value(auth.UserIDKey).(string)
+
+	var input struct {
+		RoundID  string `json:"round_id"`
+		Word     string `json:"word"`
+		Category string `json:"category"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	valid, err := h.service.SubmitAnswer(r.Context(), "", playerID, input.RoundID, input.Category, input.Word)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	if valid {
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":   "approved",
+			"word":     input.Word,
+			"category": input.Category,
+			"word_id":  input.RoundID,
+		})
+	} else {
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":   "rejected",
+			"word":     input.Word,
+			"category": input.Category,
+			"word_id":  input.RoundID,
+		})
+	}
+
+}

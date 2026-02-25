@@ -12,6 +12,7 @@ import (
 	"github.com/jerryjuche/alpha-game/internal/game"
 	pg "github.com/jerryjuche/alpha-game/internal/repository/postgres"
 	ws "github.com/jerryjuche/alpha-game/internal/websocket"
+	"github.com/jerryjuche/alpha-game/internal/word"
 )
 
 func main() {
@@ -30,9 +31,11 @@ func main() {
 
 	hub := ws.NewHub()
 	go hub.Run()
+
+	wordService := word.NewWordService(db)
 	authService := auth.NewAuthService(db, cfg.JWTSecret)
 	authHandler := auth.NewAuthHandler(authService)
-	gameEngine := game.NewGameEngine(db, hub)
+	gameEngine := game.NewGameEngine(db, hub, wordService)
 	gameHandler := game.NewGameHandler(gameEngine)
 
 	// Router
@@ -43,6 +46,7 @@ func main() {
 	// Routes
 	r.Post("/auth/register", authHandler.Register)
 	r.Post("/auth/login", authHandler.Login)
+	r.Post("/game/submit", gameHandler.Submission)
 
 	r.Group(func(r chi.Router) {
 		r.Use(authService.Authenticate)
