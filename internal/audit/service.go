@@ -42,12 +42,34 @@ func (a *AuditService) GetPendingSubmissions(ctx context.Context) ([]PendingSubm
 
 }
 
-func (a *AuditService) ApproveSubmission(ctx context.Context) error {
-	var submission_id string
-	submissionID, err := a.DBConn.QueryContext(ctx, "SELECT id FROM submissions WHERE status = 'pending'").Scan(&submission_id)
+func (a *AuditService) ApproveSubmission(ctx context.Context, submissionID string, auditorID string, points int) error {
+	_, err := a.DBConn.ExecContext(ctx, "UPDATE submissions SET status = 'approved', points_awarded = $1 WHERE id = $2", points, submissionID)
 	if err != nil {
-		return fmt.Errorf("error fetching rows, %w", err)
+		return fmt.Errorf("error approving submissions, %w", err)
 	}
 
+	_, err = a.DBConn.ExecContext(ctx, "UPDATE game_players SET score = score + $1 WHERE user_id = (SELECT submitted_by FROM submissions WHERE id =$2)", points, submissionID)
+	if err != nil {
+		return fmt.Errorf("Error adding points, %w", err)
+	}
 
+	_, err = a.DBConn.ExecContext(ctx, "INSERT INTO audit_log (submission_id, reviewed_by, decision) VALUES ($1, $2, $3)", submissionID, auditorID, "approved")
+	if err != nil {
+		return fmt.Errorf("Error inserting to audit_log, %w", err)
+	}
+	return nil
+}
+
+func (a *AuditService) RejectSubmission(ctx context.Context, submissionID string, auditorID string) error {
+	_, err := a.DBConn.ExecContext(ctx, "UPDATE submissions SET status = 'rejected', points_awarded = '0' WHERE id = $2", submissionID)
+	if err != nil {
+		return fmt.Errorf("Error rejecting submissions, %w", err)
+	}
+
+	_, err = a.DBConn.ExecContext(ctx, "INSERT INTO audit_log (submission_id, reviewed_by, decision) VALUES ($1, $2, $3)", submissionID, auditorID, "rejected")
+	if err != nil {
+		return fmt.Errorf("error inserting into audit log, %w", err)
+	}
+
+	return nil
 }

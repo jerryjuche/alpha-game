@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/jerryjuche/alpha-game/config"
+	"github.com/jerryjuche/alpha-game/internal/audit"
 	"github.com/jerryjuche/alpha-game/internal/auth"
 	"github.com/jerryjuche/alpha-game/internal/game"
 	pg "github.com/jerryjuche/alpha-game/internal/repository/postgres"
@@ -32,6 +33,8 @@ func main() {
 	hub := ws.NewHub()
 	go hub.Run()
 
+	auditService := audit.NewAuditService(db)
+	auditHandler := audit.NewAuditHandler(auditService)
 	wordService := word.NewWordService(db)
 	authService := auth.NewAuthService(db, cfg.JWTSecret)
 	authHandler := auth.NewAuthHandler(authService)
@@ -44,6 +47,9 @@ func main() {
 	r.Use(middleware.Recoverer)
 
 	// Routes
+	r.Get("/audit/pending", auditHandler.GetPending)
+	r.Post("/audit/approve", auditHandler.Approve)
+	r.Post("/audit/reject", auditHandler.Reject)
 	r.Post("/auth/register", authHandler.Register)
 	r.Post("/auth/login", authHandler.Login)
 	r.Post("/game/submit", gameHandler.Submission)
