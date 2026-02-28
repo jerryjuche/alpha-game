@@ -20,6 +20,13 @@ h1 {
     margin: 0;
 }
 
+.h1oth {
+    color: bisque;
+    font-family: 'Acme', sans-serif;
+    font-size: 60px;
+    margin: 0;
+}
+
 .description {
     font-size: 1.3rem;
     color: #F8FAFC;

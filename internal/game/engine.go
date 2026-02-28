@@ -50,30 +50,63 @@ func NewGameEngine(db *sqlx.DB, h *ws.Hub, w *word.WordService) *GameEngine {
 func generateInviteCode() string {
 	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789"
 	code := make([]byte, 6)
-
 	for i := 0; i < 6; i++ {
 		n, _ := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
 		code[i] = charset[n.Int64()]
 	}
 	return string(code)
+}
 
+func (g *GameEngine) loadGameFromDB(ctx context.Context, gameID string) error {
+	var hostID string
+	var status string
+
+	err := g.DBConn.QueryRowContext(ctx,
+		"SELECT created_by, status FROM games WHERE id = $1", gameID,
+	).Scan(&hostID, &status)
+	if err != nil {
+		return fmt.Errorf("game not found in database: %w", err)
+	}
+
+	g.ActiveGames[gameID] = &Game{
+		GameId:      gameID,
+		HostId:      hostID,
+		Status:      status,
+		Players:     make(map[string]*Player),
+		LetterUsage: make(map[string]int),
+		Start:       time.Now(),
+		End:         time.Now(),
+	}
+	return nil
+}
+
+func (g *GameEngine) getGame(ctx context.Context, gameID string) (*Game, error) {
+	game := g.ActiveGames[gameID]
+	if game == nil {
+		if err := g.loadGameFromDB(ctx, gameID); err != nil {
+			return nil, fmt.Errorf("game not found: %w", err)
+		}
+		game = g.ActiveGames[gameID]
+	}
+	return game, nil
 }
 
 func (g *GameEngine) CreateGame(ctx context.Context, hostID string) (string, string, error) {
 	var gameID string
-	var inviteCode string
+	inviteCode := generateInviteCode()
 
-	inviteCode = generateInviteCode()
-
-	err := g.DBConn.QueryRowContext(ctx, "INSERT INTO games (invite_code, status, created_by) VALUES ($1, $2, $3) RETURNING id", inviteCode, "waiting", hostID).Scan(&gameID)
+	err := g.DBConn.QueryRowContext(ctx,
+		"INSERT INTO games (invite_code, status, created_by) VALUES ($1, $2, $3) RETURNING id",
+		inviteCode, "waiting", hostID,
+	).Scan(&gameID)
 	if err != nil {
 		return "", "", fmt.Errorf("cannot create game: %w", err)
-
 	}
 
-	ActiveGame := &Game{
+	g.ActiveGames[gameID] = &Game{
 		GameId:        gameID,
 		LetterUsage:   make(map[string]int),
+		Players:       make(map[string]*Player),
 		Start:         time.Now(),
 		End:           time.Now(),
 		Status:        "waiting",
@@ -81,24 +114,28 @@ func (g *GameEngine) CreateGame(ctx context.Context, hostID string) (string, str
 		HostId:        hostID,
 	}
 
-	g.ActiveGames[gameID] = ActiveGame
 	return gameID, inviteCode, nil
-
 }
 
 func (g *GameEngine) JoinGame(ctx context.Context, playerID string, inviteCode string) (string, error) {
 	var gameID string
 	var status string
 
-	err := g.DBConn.QueryRowContext(ctx, "SELECT id, status FROM games WHERE invite_code = $1", inviteCode).Scan(&gameID, &status)
+	err := g.DBConn.QueryRowContext(ctx,
+		"SELECT id, status FROM games WHERE invite_code = $1", inviteCode,
+	).Scan(&gameID, &status)
 	if err != nil {
-		return "", fmt.Errorf("Invalid Invite code, %w", err)
-	}
-	if status != "waiting" {
-		return "", fmt.Errorf("Game started or finished, %w", err)
+		return "", fmt.Errorf("invalid invite code: %w", err)
 	}
 
-	game := g.ActiveGames[gameID]
+	if status != "waiting" {
+		return "", fmt.Errorf("game already started or finished")
+	}
+
+	game, err := g.getGame(ctx, gameID)
+	if err != nil {
+		return "", err
+	}
 
 	game.Players[playerID] = &Player{
 		Id:           playerID,
@@ -107,25 +144,32 @@ func (g *GameEngine) JoinGame(ctx context.Context, playerID string, inviteCode s
 		IsEliminated: false,
 	}
 
-	_, err = g.DBConn.ExecContext(ctx, "INSERT INTO game_players (game_id, user_id, hints_remaining) VALUES ($1, $2, $3)", gameID, playerID, 5)
+	_, err = g.DBConn.ExecContext(ctx,
+		"INSERT INTO game_players (game_id, user_id, hints_remaining) VALUES ($1, $2, $3)",
+		gameID, playerID, 5,
+	)
 	if err != nil {
-		return "", fmt.Errorf("Invalid user, %w", err)
+		return "", fmt.Errorf("could not add player to game: %w", err)
 	}
 
 	return gameID, nil
-
 }
 
-func (g *GameEngine) StartGame(ctx context.Context, gameID string, hostID string, status string) (string, error) {
-
-	_, err := g.DBConn.ExecContext(ctx, "UPDATE games SET is_status = 'active' WHERE id = $1", gameID)
+func (g *GameEngine) StartGame(ctx context.Context, gameID string, hostID string) (string, error) {
+	game, err := g.getGame(ctx, gameID)
 	if err != nil {
-		return "", fmt.Errorf("Cannou update table, %w", err)
+		return "", err
 	}
 
-	game := g.ActiveGames[gameID]
 	if game.HostId != hostID {
-		return "only the host can start the game", nil
+		return "", fmt.Errorf("only the host can start the game")
+	}
+
+	_, err = g.DBConn.ExecContext(ctx,
+		"UPDATE games SET status = 'active' WHERE id = $1", gameID,
+	)
+	if err != nil {
+		return "", fmt.Errorf("cannot update game status: %w", err)
 	}
 
 	game.Status = "active"
@@ -134,12 +178,9 @@ func (g *GameEngine) StartGame(ctx context.Context, gameID string, hostID string
 	go g.runRound(gameID)
 
 	return gameID, nil
-
 }
 
 func (g *Game) selectLetter() string {
-
-	// Generate random letter
 	charset := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	letter := make([]byte, 1)
 
@@ -158,49 +199,61 @@ func (g *Game) selectLetter() string {
 
 func (g *GameEngine) runRound(gameID string) {
 	game := g.ActiveGames[gameID]
+	if game == nil {
+		return
+	}
 
-	// 5 mins timer
 	roundEnd := time.Now().Add(5 * time.Minute)
 
 	for time.Now().Before(roundEnd) {
 		letter := game.selectLetter()
+		game.CurrentLetter = letter
 
 		g.Hub.BroadcastMsg <- ws.BroadcastMessage{
 			RoomId:  gameID,
 			Message: []byte("LETTER:" + letter),
 		}
 
-		time.Sleep(8 * time.Second)
-
+		time.Sleep(12 * time.Second)
 	}
 
+	g.eliminatePlayer(gameID)
 }
 
 func (g *GameEngine) eliminatePlayer(gameID string) {
-
 	game := g.ActiveGames[gameID]
+	if game == nil {
+		return
+	}
 
 	var lowestID string
 	lowestScore := math.MaxInt64
 
 	for playerID, player := range game.Players {
-		if player.Score < lowestScore {
-			lowestScore = player.Score // update lowest score!
+		if !player.IsEliminated && player.Score < lowestScore {
+			lowestScore = player.Score
 			lowestID = playerID
 		}
 	}
-	game.Players[lowestID].IsEliminated = true // eliminate AFTER loop
+
+	if lowestID != "" {
+		game.Players[lowestID].IsEliminated = true
+	}
 
 	count := 0
 	for _, p := range game.Players {
 		if !p.IsEliminated {
 			count++
 		}
-		if count > 2 {
-			go g.runRound(gameID)
-		} else {
-			game.Status = "finished"
-		}
 	}
 
+	if count > 2 {
+		go g.runRound(gameID)
+	} else {
+		game.Status = "finished"
+		g.Hub.BroadcastMsg <- ws.BroadcastMessage{
+			RoomId:  gameID,
+			Message: []byte("GAME:FINISHED"),
+		}
+	}
 }

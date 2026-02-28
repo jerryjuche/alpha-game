@@ -8,6 +8,7 @@ CREATE TABLE users (
     is_active BOOLEAN DEFAULT TRUE,
     theme TEXT DEFAULT 'default',
     hints INTEGER DEFAULT 0,
+    level INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );

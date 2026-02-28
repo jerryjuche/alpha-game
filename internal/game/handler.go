@@ -66,7 +66,7 @@ func (h *GameHandler) StartGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gameID, err := h.service.StartGame(r.Context(), input.GameID, hostID, "active")
+	gameID, err := h.service.StartGame(r.Context(), input.GameID, hostID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -105,7 +105,7 @@ func (h *GameHandler) Submission(w http.ResponseWriter, r *http.Request) {
 			"status":   "approved",
 			"word":     input.Word,
 			"category": input.Category,
-			"word_id":  input.RoundID,
+			"round_id":  input.RoundID,
 		})
 	} else {
 		json.NewEncoder(w).Encode(map[string]interface{}{

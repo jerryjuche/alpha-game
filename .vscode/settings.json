@@ -1,5 +1,5 @@
 {
-    "editor.acceptSuggestionOnEnter": "off",
+    "editor.acceptSuggestionOnEnter": "on",
     "editor.inlineSuggest.edits.allowCodeShifting": "never",
     "editor.inlineSuggest.edits.renderSideBySide": "never"
 }
