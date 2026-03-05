@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 function GameRoom() {
     const { gameId } = useParams()
@@ -10,8 +10,14 @@ function GameRoom() {
     const [thing, setThing] = useState("")
     const [food, setFood] = useState("")
     const [roundId, setRoundId] = useState("")
+    const [gameTime, setGameTime] = useState(180)
     const [timer, setTimer] = useState(12)
-    const [isStarted, setIsStarted] = useState(false)
+    const [gamePhase, setGamePhase] = useState(false)
+    const submitRef = useRef()
+    submitRef.current = submitAnswers
+
+
+
 
     useEffect(() => {
         const socket = new WebSocket(`ws://localhost:8080/ws/${gameId}?token=${localStorage.getItem('token')}`)
@@ -45,13 +51,13 @@ function GameRoom() {
 
 
     useEffect(() => {
-        if (isStarted === true) {
+        if (gamePhase === true) {
             const interval = setInterval(() => {
 
                 setTimer(prev => {
                     if (prev <= 1) {
-                        submitAnswers()
-                        return 12  // reset timer for next letter
+                        submitRef.current()
+                        return 12
                     }
                     return prev - 1
                 })
@@ -61,7 +67,31 @@ function GameRoom() {
 
         }
 
-    }, [isStarted])
+    }, [gamePhase])
+
+    useEffect(() => {
+        if (gamePhase === true) {
+            const interval = setInterval(() => {
+                setGameTime(prev => {
+                    if (prev <= 1) return 0
+                    return prev - 1
+                })
+            }, 1000)
+            return () => clearInterval(interval)
+        }
+
+        if (gamePhase === false) {
+            console.log("Game Has Not Started")
+        }
+    }, [gamePhase])
+
+    useEffect(() => {
+        if (gameTime === 0) {
+            submitRef.current()
+            setGamePhase(false)
+
+        }
+    }, [gameTime])
 
 
     async function startGame() {
@@ -74,10 +104,12 @@ function GameRoom() {
             body: JSON.stringify({ game_id: gameId })
         })
 
-        setIsStarted(true)
+        setGamePhase(true)
+
     }
 
     async function submitAnswers() {
+
         const submissions = [
             { round_id: roundId, word: name, category: "name" },
             { round_id: roundId, word: animal, category: "animal" },
@@ -111,11 +143,16 @@ function GameRoom() {
     return (
         <div>
             <div>
-                <h3>Current Letter: {currentLetter}</h3>
+                <h3>Current Letter: {currentLetter} </h3>
                 <div>
-                    <h2>Timer: {timer}</h2>
+                    <h2>Timer: {timer} </h2>
                 </div>
-                <button onClick={startGame}>Start Game</button>
+
+                <div>
+                    <h2>Game Time: {gameTime} </h2>
+                </div>
+
+                {!gamePhase && (<button disabled={gamePhase} onClick={startGame}>Start Game</button>)}
                 <div>
                     <input
                         type="text"
@@ -123,6 +160,7 @@ function GameRoom() {
                         value={name}
                         autoComplete="off"
                         onChange={(e) => setName(e.target.value)}
+                        disabled={!gamePhase}
                     />
                     <input
                         type="text"
@@ -130,6 +168,7 @@ function GameRoom() {
                         value={animal}
                         autoComplete="off"
                         onChange={(e) => setAnimal(e.target.value)}
+                        disabled={!gamePhase}
                     />
                     <input
                         type="text"
@@ -137,6 +176,7 @@ function GameRoom() {
                         value={place}
                         autoComplete="off"
                         onChange={(e) => setPlace(e.target.value)}
+                        disabled={!gamePhase}
                     />
                     <input
                         type="text"
@@ -144,6 +184,7 @@ function GameRoom() {
                         value={thing}
                         autoComplete="off"
                         onChange={(e) => setThing(e.target.value)}
+                        disabled={!gamePhase}
                     />
                     <input
                         type="text"
@@ -151,8 +192,9 @@ function GameRoom() {
                         value={food}
                         autoComplete="off"
                         onChange={(e) => setFood(e.target.value)}
+                        disabled={!gamePhase}
                     />
-                    <button type="button" onClick={submitAnswers}>Submit</button>
+                    <button disabled={!gamePhase} type="button" onClick={submitAnswers}>Submit</button>
                 </div>
             </div>
         </div>
