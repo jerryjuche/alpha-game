@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useFetcher, useParams } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 
 function GameRoom() {
@@ -11,12 +11,13 @@ function GameRoom() {
     const [food, setFood] = useState("")
     const [roundId, setRoundId] = useState("")
     const [gameTime, setGameTime] = useState(180)
-    const [timer, setTimer] = useState(12)
-    const [gamePhase, setGamePhase] = useState(false)
+    const [timer, setTimer] = useState(10)
+    const [gamePhase, setGamePhase] = useState("waiting")
     const submitRef = useRef()
+    const breakRef = useRef()
     submitRef.current = submitAnswers
-
-
+    const gamePhaseRef = useRef(gamePhase)
+    const [breakDuration, setBreakDuration] = useState(5)
 
 
     useEffect(() => {
@@ -28,22 +29,28 @@ function GameRoom() {
 
             if (data.startsWith("LETTER:")) {
                 setCurrentLetter(data.split(":")[1])
+                setGamePhase("playing")
+                setTimer(10)
+
                 // Clear inputs on new letter
                 setName("")
                 setAnimal("")
                 setPlace("")
                 setThing("")
                 setFood("")
-                setTimer(12)
+                setTimer(10)
             }
 
-            if (data.startsWith("ROUND:")) {
-                setRoundId(data.split(":")[1])
+            if (data.startsWith("BREAK:")) {
+                const breakDuration = parseInt(data.split(":")[1])
+                setGamePhase("break")
+                submitRef.current()
             }
 
             if (data === "GAME:FINISHED") {
-                alert("Game Over!")
+                setGamePhase("waiting")
             }
+
         }
 
         return () => socket.close()
@@ -51,13 +58,15 @@ function GameRoom() {
 
 
     useEffect(() => {
-        if (gamePhase === true) {
+        if (gamePhase === "playing") {
             const interval = setInterval(() => {
 
                 setTimer(prev => {
                     if (prev <= 1) {
+                        gamePhaseRef.current = gamePhase
+
                         submitRef.current()
-                        return 12
+                        return 10
                     }
                     return prev - 1
                 })
@@ -70,7 +79,7 @@ function GameRoom() {
     }, [gamePhase])
 
     useEffect(() => {
-        if (gamePhase === true) {
+        if (gamePhase === "playing") {
             const interval = setInterval(() => {
                 setGameTime(prev => {
                     if (prev <= 1) return 0
@@ -80,15 +89,17 @@ function GameRoom() {
             return () => clearInterval(interval)
         }
 
-        if (gamePhase === false) {
+        if (gamePhase === "waiting") {
             console.log("Game Has Not Started")
         }
     }, [gamePhase])
 
+
+
     useEffect(() => {
         if (gameTime === 0) {
             submitRef.current()
-            setGamePhase(false)
+            setGamePhase("waiting")
 
         }
     }, [gameTime])
@@ -104,7 +115,7 @@ function GameRoom() {
             body: JSON.stringify({ game_id: gameId })
         })
 
-        setGamePhase(true)
+        setGamePhase("playing")
 
     }
 
@@ -145,22 +156,22 @@ function GameRoom() {
             <div>
                 <h3>Current Letter: {currentLetter} </h3>
                 <div>
-                    <h2>Timer: {timer} </h2>
+                    {gamePhase === "playing" && <h2>Timer: {timer}</h2>}
+                    {gamePhase === "break" && <h2>Break: {breakDuration}</h2>}
                 </div>
 
                 <div>
                     <h2>Game Time: {gameTime} </h2>
                 </div>
 
-                {!gamePhase && (<button disabled={gamePhase} onClick={startGame}>Start Game</button>)}
-                <div>
+                {gamePhase === "waiting" && <button onClick={startGame}>Start Game</button>}                <div>
                     <input
                         type="text"
                         placeholder="Name"
                         value={name}
                         autoComplete="off"
                         onChange={(e) => setName(e.target.value)}
-                        disabled={!gamePhase}
+                        disabled={gamePhase !== "playing"}
                     />
                     <input
                         type="text"
@@ -168,7 +179,7 @@ function GameRoom() {
                         value={animal}
                         autoComplete="off"
                         onChange={(e) => setAnimal(e.target.value)}
-                        disabled={!gamePhase}
+                        disabled={gamePhase !== "playing"}
                     />
                     <input
                         type="text"
@@ -176,7 +187,7 @@ function GameRoom() {
                         value={place}
                         autoComplete="off"
                         onChange={(e) => setPlace(e.target.value)}
-                        disabled={!gamePhase}
+                        disabled={gamePhase !== "playing"}
                     />
                     <input
                         type="text"
@@ -184,7 +195,7 @@ function GameRoom() {
                         value={thing}
                         autoComplete="off"
                         onChange={(e) => setThing(e.target.value)}
-                        disabled={!gamePhase}
+                        disabled={gamePhase !== "playing"}
                     />
                     <input
                         type="text"
@@ -192,9 +203,9 @@ function GameRoom() {
                         value={food}
                         autoComplete="off"
                         onChange={(e) => setFood(e.target.value)}
-                        disabled={!gamePhase}
+                        disabled={gamePhase !== "playing"}
                     />
-                    <button disabled={!gamePhase} type="button" onClick={submitAnswers}>Submit</button>
+                    <button disabled={gamePhase !== "playing"} type="button" onClick={submitAnswers}>Submit</button>
                 </div>
             </div>
         </div>
