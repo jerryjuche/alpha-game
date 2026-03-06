@@ -21,14 +21,14 @@ function Lobby() {
             const data = await response.json()
             setGameId(data.game_id)
             setCreatedInviteCode(data.invite_code)
-            navigate(`/game/${data.game_id}`)
 
         } else {
-            setError("Cannot creat game")
+            setError("Cannot create game")
         }
     }
 
     async function joinGame() {
+        console.log(joinInviteCode)
         const response = await fetch('http://localhost:8080/game/join', {
             method: 'POST',
             headers: {
@@ -36,14 +36,14 @@ function Lobby() {
                 'Authorization': `Bearer ${localStorage.getItem('token')}`
             },
             body: JSON.stringify({
-                inviteCode: joinInviteCode,
+                invite_code: joinInviteCode,
             })
         })
 
         if (response.status === 200) {
             const data = await response.json()
             setGameId(data.game_id)
-            navigate('/game/${gameId}')
+            navigate(`/game/${data.game_id}`)
 
         } else {
             setError("Error joining game")
@@ -66,6 +66,7 @@ function Lobby() {
                 <button className="btn" onClick={createGame}>Create Room</button>
                 {createdInviteCode && <p className="invitecode">{createdInviteCode}</p>}
                 <button type="button" onClick={copyInviteCode}>Copy invite code</button>
+                <button type="button" onClick={() => navigate(`/game/${gameId}`)}>start game</button>
             </div>
             <div className="game-container">
                 <h1 className="h1oth">JOIN ROOM</h1>

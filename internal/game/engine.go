@@ -22,6 +22,9 @@ type Game struct {
 	Status        string
 	CurrentLetter string
 	HostId        string
+	PhaseEndsAt   time.Time
+	RoundEndsAt   time.Time
+	CurrentPhase  string
 }
 
 type Player struct {
@@ -175,7 +178,7 @@ func (g *GameEngine) StartGame(ctx context.Context, gameID string, hostID string
 	game.Status = "active"
 	game.Start = time.Now()
 
-	go g.runRound(gameID)
+	go g.runRound(ctx, gameID)
 
 	return gameID, nil
 }
@@ -197,30 +200,51 @@ func (g *Game) selectLetter() string {
 	return string(letter)
 }
 
-func (g *GameEngine) runRound(gameID string) {
+func (g *GameEngine) runRound(ctx context.Context, gameID string) {
 	game := g.ActiveGames[gameID]
 	if game == nil {
 		return
 	}
 
-	roundEnd := time.Now().Add(5 * time.Minute)
+	roundEnd := time.Now().Add(3 * time.Minute)
+	game.RoundEndsAt = roundEnd
 
 	for time.Now().Before(roundEnd) {
+
 		letter := game.selectLetter()
 		game.CurrentLetter = letter
+		game.CurrentPhase = "playing"
+		game.PhaseEndsAt = time.Now().Add(10 * time.Second)
+
+		var roundID string
+
+		err := g.DBConn.QueryRowContext(ctx, "INSERT INTO rounds (game_id, letter, started_at) VALUES ($1, $2, $3) RETURNING id", gameID, letter, time.Now()).Scan(&roundID)
+		if err != nil {
+			fmt.Errorf("error fetching data", err)
+		}
 
 		g.Hub.BroadcastMsg <- ws.BroadcastMessage{
 			RoomId:  gameID,
 			Message: []byte("LETTER:" + letter),
 		}
 
-		time.Sleep(12 * time.Second)
+		time.Sleep(10 * time.Second)
+
+		game.CurrentPhase = "break"
+		game.PhaseEndsAt = time.Now().Add(5 * time.Second)
+
+		g.Hub.BroadcastMsg <- ws.BroadcastMessage{
+			RoomId:  gameID,
+			Message: []byte("BREAK:5"),
+		}
+
+		time.Sleep(5 * time.Second)
 	}
 
-	g.eliminatePlayer(gameID)
+	g.eliminatePlayer(ctx, gameID)
 }
 
-func (g *GameEngine) eliminatePlayer(gameID string) {
+func (g *GameEngine) eliminatePlayer(ctx context.Context, gameID string) {
 	game := g.ActiveGames[gameID]
 	if game == nil {
 		return
@@ -248,7 +272,7 @@ func (g *GameEngine) eliminatePlayer(gameID string) {
 	}
 
 	if count > 2 {
-		go g.runRound(gameID)
+		go g.runRound(ctx, gameID)
 	} else {
 		game.Status = "finished"
 		g.Hub.BroadcastMsg <- ws.BroadcastMessage{

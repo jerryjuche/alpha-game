@@ -190,9 +190,9 @@ ENV=development
 - [x] Word database with Excel bulk import
 - [x] Game engine (create, join, start, timer, elimination)
 - [x] Real-time WebSocket infrastructure
-- [ ] Submission handler
-- [ ] Audit system
-- [ ] Player profiles & statistics
+- [x] Submission handler
+- [x] Audit system
+- [x] Player profiles & statistics
 - [ ] Frontend
 - [ ] Admin dashboard
 
@@ -207,3 +207,5 @@ Built by [@jerryjuche](https://github.com/jerryjuche) — learning Go by buildin
 ## 📄 License
 
 MIT
+
+## Database migration....dosent creates on new devices...work on that

@@ -1,6 +1,7 @@
 package websocket
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/gorilla/websocket"
@@ -12,7 +13,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func ServeWS(hub *Hub, userID string, roomID string, w http.ResponseWriter, r *http.Request) {
+func ServeWS(hub *Hub, userID string, roomID string, phase string, letter string, timer int, gameTime int, w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		http.Error(w, "Could not upgrade connection", http.StatusInternalServerError)
@@ -27,6 +28,27 @@ func ServeWS(hub *Hub, userID string, roomID string, w http.ResponseWriter, r *h
 	}
 
 	hub.NewClient <- client
+
+	if phase != "" {
+		type GameState struct {
+			Phase    string `json:"phase"`
+			Letter   string `json:"letter"`
+			Timer    int    `json:"timer"`
+			GameTime int    `json:"gameTime"`
+		}
+
+		state := GameState{
+			Phase:    phase,
+			Letter:   letter,
+			Timer:    timer,
+			GameTime: gameTime,
+		}
+
+		stateJSON, err := json.Marshal(state)
+		if err == nil {
+			client.Channel <- append([]byte("STATE:"), stateJSON...)
+		}
+	}
 
 	go client.WritePump()
 	go client.ReadPump(hub)

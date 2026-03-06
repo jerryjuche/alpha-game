@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/cors"
 
@@ -68,7 +69,19 @@ func main() {
 		r.Get("/ws/{gameID}", func(w http.ResponseWriter, r *http.Request) {
 			gameID := chi.URLParam(r, "gameID")
 			userID := r.Context().Value(auth.UserIDKey).(string)
-			ws.ServeWS(hub, userID, gameID, w, r)
+
+			g := gameEngine.ActiveGames[gameID]
+			var phase, letter string
+			var timer, gameTime int
+
+			if g != nil && g.CurrentPhase != "" {
+				phase = g.CurrentPhase
+				letter = g.CurrentLetter
+				timer = int(time.Until(g.PhaseEndsAt).Seconds())
+				gameTime = int(time.Until(g.RoundEndsAt).Seconds())
+			}
+
+			ws.ServeWS(hub, userID, gameID, phase, letter, timer, gameTime, w, r)
 		})
 		r.Get("/profile", userHandler.GetProfile)
 		r.Post("/game/create", gameHandler.CreateGame)

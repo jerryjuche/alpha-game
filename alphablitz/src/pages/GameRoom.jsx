@@ -1,5 +1,6 @@
 import { useFetcher, useParams } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
+import './GameRoom.css'
 
 function GameRoom() {
     const { gameId } = useParams()
@@ -14,7 +15,6 @@ function GameRoom() {
     const [timer, setTimer] = useState(10)
     const [gamePhase, setGamePhase] = useState("waiting")
     const submitRef = useRef()
-    const breakRef = useRef()
     submitRef.current = submitAnswers
     const gamePhaseRef = useRef(gamePhase)
     const [breakDuration, setBreakDuration] = useState(5)
@@ -27,8 +27,17 @@ function GameRoom() {
             const data = event.data
             console.log(event.data)
 
+            if (data.startsWith("STATE:")) {
+                const state = JSON.parse(data.slice(6))
+                setCurrentLetter(state.letter)
+                setGamePhase(state.phase)
+                setTimer(state.timer)
+                setGameTime(state.gameTime)
+            }
+
             if (data.startsWith("LETTER:")) {
                 setCurrentLetter(data.split(":")[1])
+
                 setGamePhase("playing")
                 setTimer(10)
 
@@ -42,7 +51,8 @@ function GameRoom() {
             }
 
             if (data.startsWith("BREAK:")) {
-                const breakDuration = parseInt(data.split(":")[1])
+                const duration = parseInt(data.split(":")[1])
+                setBreakDuration(duration)
                 setGamePhase("break")
                 submitRef.current()
             }
@@ -56,53 +66,45 @@ function GameRoom() {
         return () => socket.close()
     }, [gameId])
 
-
     useEffect(() => {
-        if (gamePhase === "playing") {
-            const interval = setInterval(() => {
+        gamePhaseRef.current = gamePhase
+    }, [gamePhase])
 
+    // timer for the rounds (10secs) & submits answers automitically
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (gamePhaseRef.current === "playing") {
                 setTimer(prev => {
                     if (prev <= 1) {
-                        gamePhaseRef.current = gamePhase
-
                         submitRef.current()
-                        return 10
+                        return 0
                     }
                     return prev - 1
                 })
+            }
 
-            }, 1000)
-            return () => clearInterval(interval)
-
-        }
-
-    }, [gamePhase])
-
-    useEffect(() => {
-        if (gamePhase === "playing") {
-            const interval = setInterval(() => {
+            if (gamePhaseRef.current !== "waiting") {
                 setGameTime(prev => {
-                    if (prev <= 1) return 0
+                    if (prev <= 1) {
+                        submitRef.current()
+                        setGamePhase("waiting")
+                        return 0
+                    }
                     return prev - 1
                 })
-            }, 1000)
-            return () => clearInterval(interval)
-        }
+            }
 
-        if (gamePhase === "waiting") {
-            console.log("Game Has Not Started")
-        }
-    }, [gamePhase])
-
-
-
-    useEffect(() => {
-        if (gameTime === 0) {
-            submitRef.current()
-            setGamePhase("waiting")
-
-        }
-    }, [gameTime])
+            if (gamePhaseRef.current === "break") {
+                setBreakDuration(prev => {
+                    if (prev <= 1) {
+                        return 5
+                    }
+                    return prev - 1
+                })
+            }
+        }, 1000)
+        return () => clearInterval(interval)
+    }, [])
 
 
     async function startGame() {
@@ -152,8 +154,8 @@ function GameRoom() {
     }
 
     return (
-        <div>
-            <div>
+        <div className="room-conainer">
+            <div className="game-room">
                 <h3>Current Letter: {currentLetter} </h3>
                 <div>
                     {gamePhase === "playing" && <h2>Timer: {timer}</h2>}
@@ -164,7 +166,7 @@ function GameRoom() {
                     <h2>Game Time: {gameTime} </h2>
                 </div>
 
-                {gamePhase === "waiting" && <button onClick={startGame}>Start Game</button>}                <div>
+                {gamePhase === "waiting" && <button className="button" onClick={startGame}>Start Game</button>}                <div>
                     <input
                         type="text"
                         placeholder="Name"
@@ -172,6 +174,8 @@ function GameRoom() {
                         autoComplete="off"
                         onChange={(e) => setName(e.target.value)}
                         disabled={gamePhase !== "playing"}
+                        className="input"
+
                     />
                     <input
                         type="text"
@@ -180,6 +184,8 @@ function GameRoom() {
                         autoComplete="off"
                         onChange={(e) => setAnimal(e.target.value)}
                         disabled={gamePhase !== "playing"}
+                        className="input"
+
                     />
                     <input
                         type="text"
@@ -188,6 +194,8 @@ function GameRoom() {
                         autoComplete="off"
                         onChange={(e) => setPlace(e.target.value)}
                         disabled={gamePhase !== "playing"}
+                        className="input"
+
                     />
                     <input
                         type="text"
@@ -196,6 +204,8 @@ function GameRoom() {
                         autoComplete="off"
                         onChange={(e) => setThing(e.target.value)}
                         disabled={gamePhase !== "playing"}
+                        className="input"
+
                     />
                     <input
                         type="text"
@@ -204,8 +214,10 @@ function GameRoom() {
                         autoComplete="off"
                         onChange={(e) => setFood(e.target.value)}
                         disabled={gamePhase !== "playing"}
+                        className="input"
+
                     />
-                    <button disabled={gamePhase !== "playing"} type="button" onClick={submitAnswers}>Submit</button>
+                    <button className="button" disabled={gamePhase !== "playing"} type="button" onClick={submitAnswers}>Submit</button>
                 </div>
             </div>
         </div>
