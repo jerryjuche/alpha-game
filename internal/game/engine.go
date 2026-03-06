@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	"log"
 	"math"
 	"math/big"
 	"time"
@@ -220,7 +221,14 @@ func (g *GameEngine) runRound(ctx context.Context, gameID string) {
 
 		err := g.DBConn.QueryRowContext(ctx, "INSERT INTO rounds (game_id, letter, started_at) VALUES ($1, $2, $3) RETURNING id", gameID, letter, time.Now()).Scan(&roundID)
 		if err != nil {
-			fmt.Errorf("error fetching data", err)
+			log.Printf("failed to insert round: %v", err)
+			continue
+		}
+		log.Printf("round inserted: %s", roundID)
+
+		g.Hub.BroadcastMsg <- ws.BroadcastMessage{
+			RoomId:  gameID,
+			Message: []byte("ROUND:" + roundID),
 		}
 
 		g.Hub.BroadcastMsg <- ws.BroadcastMessage{
@@ -239,6 +247,7 @@ func (g *GameEngine) runRound(ctx context.Context, gameID string) {
 		}
 
 		time.Sleep(5 * time.Second)
+
 	}
 
 	g.eliminatePlayer(ctx, gameID)
