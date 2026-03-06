@@ -25,7 +25,11 @@ function GameRoom() {
 
         socket.onmessage = (event) => {
             const data = event.data
-            console.log(event.data)
+
+            if (data.startsWith("ROUND:")){
+                setRoundId(data.split(":")[1])
+            
+            }
 
             if (data.startsWith("STATE:")) {
                 const state = JSON.parse(data.slice(6))
@@ -158,6 +162,7 @@ function GameRoom() {
             <div className="game-room">
                 <h3>Current Letter: {currentLetter} </h3>
                 <div>
+                    {gamePhase === "playing" && <h2>{roundId}</h2>}
                     {gamePhase === "playing" && <h2>Timer: {timer}</h2>}
                     {gamePhase === "break" && <h2>Break: {breakDuration}</h2>}
                 </div>
