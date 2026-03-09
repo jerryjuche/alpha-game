@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import './GameRoom.css'
 
 function Login() {
     const navigate = useNavigate()
@@ -33,7 +34,7 @@ function Login() {
     return (
        <div className="login-container">
         <div className="container">
-            <input type="email" className="" placeholder="yourcompany@gmail.com" value={email} onChange={(e) => setEmail(e.target.value)}/>
+            <input type="email"  placeholder="yourcompany@gmail.com" value={email} onChange={(e) => setEmail(e.target.value)}/>
             <input type="password" className="" placeholder="password" value={password} onChange={(e) => setPassword(e.target.value)} />
             {error && <p className="error">{error}</p>}
             <button className="" onClick={login}>login</button>

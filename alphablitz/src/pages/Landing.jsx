@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import './LandingPage.css'
+import './GameRoom.css'
 
 
 
@@ -11,7 +11,7 @@ function LandingPage() {
             <div className="description">
                 <p>One letter. Five categories. Eight seconds.</p>
             </div>
-            <button className="btn" onClick={() => navigate('/register')}>Play Now</button>
+            <button onClick={() => navigate('/register')}>Play Now</button>
         </div>
     )
 }

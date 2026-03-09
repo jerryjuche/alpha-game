@@ -1,8 +1,9 @@
-
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
 
 :root {
+  --text-2xl: 50px;
+  --text-xl: 30px;
   --font-size: 20px;
   --background: #ffffff;
   --foreground: oklch(0.145 0 0);
@@ -45,49 +46,78 @@
 
 
 
-  html {
-    font-size: var(--font-size);
-  }
+html {
+  font-size: var(--font-size);
+}
 
-  h1 {
-    font-size: var(--text-2xl);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
+h1 {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+}
 
-  h2 {
-    font-size: var(--text-xl);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
+h2 {
+  font-size: var(--text-xl);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+}
 
-  h3 {
-    font-size: var(--text-lg);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
+h3 {
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+}
 
-  h4 {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
+h4 {
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+}
 
-  label {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
+label {
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+}
 
-  button {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
-    line-height: 1.5;
-  }
+button {
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+  background-color: var( --chart-1);
+}
 
-  input {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-normal);
-    line-height: 1.5;
-  }
+input {
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-normal);
+  line-height: 1.5;
+}
 
+.container h1 {
+  color: wheat;
+  font-size: var(--text-2xl);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+}
+
+.container p {
+  color: wheat;
+  font-size: var(--text-xl);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+}
+
+.container, .register button {
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.5;
+  border-radius: 8px;
+  color: white;
+  border: solid 2px var(--accent);
+}
+
+.register-container{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
