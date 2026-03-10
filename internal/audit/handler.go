@@ -28,16 +28,24 @@ func (s *AuditHandler) Approve(w http.ResponseWriter, r *http.Request) {
 	var input struct {
 		SubmissionID string `json:"submission_id"`
 		Points       int    `json:"points"`
+		Category     string `json:"category"`
+		Word         string `json:"word"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
+	firstletter := string(input.Word[0])
 
 	auditorID := r.Context().Value("user_id").(string)
 
-	if err := s.service.ApproveSubmission(r.Context(), input.SubmissionID, auditorID, input.Points); err != nil {
+	if input.Word == "" {
+		http.Error(w, "word is required", http.StatusBadRequest)
+		return
+	}
+
+	if err := s.service.ApproveSubmission(r.Context(), input.Category, input.Word, input.SubmissionID, firstletter, auditorID, input.Points); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

@@ -42,7 +42,7 @@ func (a *AuditService) GetPendingSubmissions(ctx context.Context) ([]PendingSubm
 
 }
 
-func (a *AuditService) ApproveSubmission(ctx context.Context, submissionID string, auditorID string, points int) error {
+func (a *AuditService) ApproveSubmission(ctx context.Context, category string, input string, submissionID string, firstletter string, auditorID string, points int) error {
 	_, err := a.DBConn.ExecContext(ctx, "UPDATE submissions SET status = 'approved', points_awarded = $1 WHERE id = $2", points, submissionID)
 	if err != nil {
 		return fmt.Errorf("error approving submissions, %w", err)
@@ -57,11 +57,16 @@ func (a *AuditService) ApproveSubmission(ctx context.Context, submissionID strin
 	if err != nil {
 		return fmt.Errorf("Error inserting to audit_log, %w", err)
 	}
+
+	_, err = a.DBConn.ExecContext(ctx, "INSERT INTO word_database (word, category, starts_with, is_approved) VALUES ($1, $2, $3, $4) ON CONFLICT (word, category) DO NOTHING", input, category, firstletter, true)
+	if err != nil {
+		return fmt.Errorf("error inserting into word_db", err)
+	}
 	return nil
 }
 
 func (a *AuditService) RejectSubmission(ctx context.Context, submissionID string, auditorID string) error {
-	_, err := a.DBConn.ExecContext(ctx, "UPDATE submissions SET status = 'rejected', points_awarded = '0' WHERE id = $2", submissionID)
+	_, err := a.DBConn.ExecContext(ctx, "UPDATE submissions SET status = 'rejected', points_awarded = '0' WHERE id = $1", submissionID)
 	if err != nil {
 		return fmt.Errorf("Error rejecting submissions, %w", err)
 	}

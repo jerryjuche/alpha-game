@@ -179,7 +179,7 @@ func (g *GameEngine) StartGame(ctx context.Context, gameID string, hostID string
 	game.Status = "active"
 	game.Start = time.Now()
 
-	go g.runRound(ctx, gameID)
+	go g.runRound(context.Background(), gameID)
 
 	return gameID, nil
 }

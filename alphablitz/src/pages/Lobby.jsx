@@ -57,25 +57,25 @@ function Lobby() {
 
     return (
         <div className="create-game-container">
-            <h1 className="h1oth">CREATE OR JOIN A ROOM</h1>
+            <h1 >CREATE OR JOIN A ROOM</h1>
             <div className="game-container">
-                <h1 className="h1oth">CREATE ROOM</h1>
+                <h1 >CREATE ROOM</h1>
                 <p>Create Room allows a player to start a new game session and act as the host. <br></br>
                     A unique room is generated where other players can join using a room code. <br></br>
                     The host controls the session setup and begins the game once all players have joined.</p>
-                <button className="btn" onClick={createGame}>Create Room</button>
+                <button onClick={createGame}>Create Room</button>
                 {createdInviteCode && <p className="invitecode">{createdInviteCode}</p>}
                 <button type="button" onClick={copyInviteCode}>Copy invite code</button>
                 <button type="button" onClick={() => navigate(`/game/${gameId}`)}>start game</button>
             </div>
             <div className="game-container">
-                <h1 className="h1oth">JOIN ROOM</h1>
+                <h1 >JOIN ROOM</h1>
                 <p>Join Room allows a player to enter an existing game session using a valid room code. <br></br>
                     Once joined, the player becomes part of the multiplayer lobby and waits with other participants until the host starts the game.<br></br>
                 </p>
                 <input type="text" placeholder="invite code" value={joinInviteCode} onChange={(e) => setJoinInviteCode(e.target.value)} />
-                <button className="btn" onClick={joinGame}>Join Room</button>
-                {error && <p className="error">{error}</p>}
+                <button onClick={joinGame}>Join Room</button>
+                {error && <p >{error}</p>}
             </div>
         </div>
     )

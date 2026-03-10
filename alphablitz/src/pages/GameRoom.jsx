@@ -23,12 +23,17 @@ function GameRoom() {
     useEffect(() => {
         const socket = new WebSocket(`ws://localhost:8080/ws/${gameId}?token=${localStorage.getItem('token')}`)
 
+        socket.onopen = () => console.log("WS connected")
+        socket.onclose = () => console.log("WS closed")
+        socket.onerror = (e) => console.log("WS error", e)
+
         socket.onmessage = (event) => {
+            console.log(event.data)
             const data = event.data
 
-            if (data.startsWith("ROUND:")){
+            if (data.startsWith("ROUND:")) {
                 setRoundId(data.split(":")[1])
-            
+
             }
 
             if (data.startsWith("STATE:")) {
@@ -162,7 +167,7 @@ function GameRoom() {
             <div className="game-room">
                 <h3>Current Letter: {currentLetter} </h3>
                 <div>
-                    {gamePhase === "playing" && <h2>{roundId}</h2>}
+                    {gamePhase === "playing" && <h2> Round id: {roundId}</h2>}
                     {gamePhase === "playing" && <h2>Timer: {timer}</h2>}
                     {gamePhase === "break" && <h2>Break: {breakDuration}</h2>}
                 </div>
