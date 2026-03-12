@@ -35,9 +35,9 @@ func (w *WordService) ImportFromExcel(ctx context.Context, file io.Reader, categ
 	}
 
 	count := 0
-	// loops whrough each row, skipping headers and empty cells
+	// loops through each row, skipping headers and empty cells
 	for i, row := range rows {
-		//skipps hearde
+		//skips header
 		if i == 0 {
 			continue
 		}

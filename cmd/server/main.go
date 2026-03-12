@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/cors"
 
@@ -15,6 +14,7 @@ import (
 	"github.com/jerryjuche/alpha-game/internal/auth"
 	"github.com/jerryjuche/alpha-game/internal/game"
 	pg "github.com/jerryjuche/alpha-game/internal/repository/postgres"
+	"github.com/jerryjuche/alpha-game/internal/scoring"
 	"github.com/jerryjuche/alpha-game/internal/user"
 	ws "github.com/jerryjuche/alpha-game/internal/websocket"
 	"github.com/jerryjuche/alpha-game/internal/word"
@@ -37,22 +37,24 @@ func main() {
 	hub := ws.NewHub()
 	go hub.Run()
 
+	scoringService := scoring.NewScoringService(db)
 	userService := user.NewUserService(db)
 	userHandler := user.NewUserHandler(userService)
-	auditService := audit.NewAuditService(db)
+	auditService := audit.NewAuditService(db, scoringService)
 	auditHandler := audit.NewAuditHandler(auditService)
 	wordService := word.NewWordService(db)
 	authService := auth.NewAuthService(db, cfg.JWTSecret)
 	authHandler := auth.NewAuthHandler(authService)
-	gameEngine := game.NewGameEngine(db, hub, wordService)
+	gameEngine := game.NewGameEngine(db, hub, wordService, scoringService)
 	gameHandler := game.NewGameHandler(gameEngine)
+	wordHandler := word.NewWordHandler(wordService)
 
 	// Router
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5173"},
+		AllowedOrigins:   []string{cfg.AllowedOrigin},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
 		AllowCredentials: true,
@@ -70,18 +72,9 @@ func main() {
 			gameID := chi.URLParam(r, "gameID")
 			userID := r.Context().Value(auth.UserIDKey).(string)
 
-			g := gameEngine.ActiveGames[gameID]
-			var phase, letter string
-			var timer, gameTime int
+			phase, letter, roundID, timer, gameTime := gameEngine.GetGameState(gameID)
 
-			if g != nil && g.CurrentPhase != "" {
-				phase = g.CurrentPhase
-				letter = g.CurrentLetter
-				timer = int(time.Until(g.PhaseEndsAt).Seconds())
-				gameTime = int(time.Until(g.RoundEndsAt).Seconds())
-			}
-
-			ws.ServeWS(hub, userID, gameID, phase, letter, timer, gameTime, w, r)
+			ws.ServeWS(hub, userID, roundID, gameID, phase, letter, timer, gameTime, w, r)
 		})
 		r.Get("/profile", userHandler.GetProfile)
 		r.Post("/game/create", gameHandler.CreateGame)
@@ -91,6 +84,10 @@ func main() {
 		r.Get("/audit/pending", auditHandler.GetPending)
 		r.Post("/audit/approve", auditHandler.Approve)
 		r.Post("/audit/reject", auditHandler.Reject)
+		r.Post("/word/add", wordHandler.AddWord)
+		r.Post("/word/delete", wordHandler.DeleteWord)
+		r.Post("/word/approve", wordHandler.ApproveWord)
+		r.Post("/word/import", wordHandler.ImportFromExcel)
 	})
 
 	// Start server

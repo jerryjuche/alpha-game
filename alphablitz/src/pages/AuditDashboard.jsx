@@ -1,4 +1,3 @@
-import App from "../App";
 
 function AuditDashboard() {
     return (

@@ -42,7 +42,7 @@ func (s *AuthService) Login(ctx context.Context, input LoginInput) (string, erro
 
 	err := s.DBConn.QueryRowxContext(ctx, "SELECT id, password FROM users WHERE email = $1", input.Email).Scan(&userID, &hashedPassword)
 	if err != nil {
-		return "", fmt.Errorf("User not found!!: %w", err)
+		return "", fmt.Errorf("invalid credentials: %w", err)
 	}
 
 	// Compare hashed password

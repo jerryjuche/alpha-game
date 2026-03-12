@@ -2,6 +2,7 @@ package game
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/jerryjuche/alpha-game/internal/auth"
@@ -94,6 +95,10 @@ func (h *GameHandler) Submission(w http.ResponseWriter, r *http.Request) {
 
 	valid, err := h.service.SubmitAnswer(r.Context(), "", playerID, input.RoundID, input.Category, input.Word)
 	if err != nil {
+		if errors.Is(err, ErrDuplicateSubmission) {
+			http.Error(w, "already submitted", http.StatusConflict)
+			return
+		}
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -105,7 +110,7 @@ func (h *GameHandler) Submission(w http.ResponseWriter, r *http.Request) {
 			"status":   "approved",
 			"word":     input.Word,
 			"category": input.Category,
-			"round_id":  input.RoundID,
+			"round_id": input.RoundID,
 		})
 	} else {
 		json.NewEncoder(w).Encode(map[string]interface{}{

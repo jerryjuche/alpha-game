@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
@@ -34,7 +35,7 @@ func (a *UserService) GetProfile(ctx context.Context, userID string) (*UserProfi
 		return nil, fmt.Errorf("Error getting user stats, %w", err)
 	}
 
-	err = a.DBConn.QueryRowContext(ctx, "SELECT COUNT (*) FROM game_players WHERE id = $1", userID).Scan(&profile.GamesPlayed)
+	err = a.DBConn.QueryRowContext(ctx, "SELECT COUNT (*) FROM game_players WHERE user_id = $1", userID).Scan(&profile.GamesPlayed)
 	if err != nil {
 		return nil, fmt.Errorf("Error getting user stats, %w", err)
 	}
@@ -44,14 +45,25 @@ func (a *UserService) GetProfile(ctx context.Context, userID string) (*UserProfi
 		return nil, fmt.Errorf("Error getting user stats, %w", err)
 	}
 
-	err = a.DBConn.QueryRowContext(ctx, "SELECT MAX(word_submitted), MIN(word_submitted) FROM submissions WHERE submitted_by = $1 AND status = 'approved'", userID).Scan(&profile.LongestWord, &profile.ShortestWord)
+	err = a.DBConn.QueryRowContext(ctx, "SELECT word_submitted FROM submissions WHERE submitted_by = $1 AND status = 'approved' ORDER BY LENGTH(word_submitted) DESC LIMIT 1", userID).Scan(&profile.LongestWord)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, fmt.Errorf("error getting longest word: %w", err)
+	}
+
+	err = a.DBConn.QueryRowContext(ctx, "SELECT word_submitted FROM submissions WHERE submitted_by = $1 AND status = 'approved' ORDER BY LENGTH(word_submitted) ASC LIMIT 1", userID).Scan(&profile.ShortestWord)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, fmt.Errorf("error getting shortest word: %w", err)
+	}
+
+	err = a.DBConn.QueryRowContext(ctx, "SELECT COUNT(*) FROM game_players  WHERE user_id = $1  AND is_eliminated = FALSE AND game_id IN (SELECT id FROM games WHERE status = 'finished')", userID).Scan(&profile.GamesWon)
 	if err != nil {
-		return nil, fmt.Errorf("Error getting user stats")
+		return nil, fmt.Errorf("error getting wins: %w", err)
 	}
 
 	if profile.GamesPlayed > 0 {
 		profile.WinRate = float64(profile.GamesWon) / float64(profile.GamesPlayed) * 100
 	}
+
 	return &profile, nil
 
 }

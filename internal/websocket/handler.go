@@ -2,6 +2,7 @@ package websocket
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/gorilla/websocket"
@@ -13,7 +14,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func ServeWS(hub *Hub, userID string, roomID string, phase string, letter string, timer int, gameTime int, w http.ResponseWriter, r *http.Request) {
+func ServeWS(hub *Hub, userID string, roundID string, roomID string, phase string, letter string, timer int, gameTime int, w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		http.Error(w, "Could not upgrade connection", http.StatusInternalServerError)
@@ -35,6 +36,7 @@ func ServeWS(hub *Hub, userID string, roomID string, phase string, letter string
 			Letter   string `json:"letter"`
 			Timer    int    `json:"timer"`
 			GameTime int    `json:"gameTime"`
+			RoundID  string `json:"roundID"`
 		}
 
 		state := GameState{
@@ -42,12 +44,15 @@ func ServeWS(hub *Hub, userID string, roomID string, phase string, letter string
 			Letter:   letter,
 			Timer:    timer,
 			GameTime: gameTime,
+			RoundID:  roundID,
 		}
 
 		stateJSON, err := json.Marshal(state)
-		if err == nil {
-			client.Channel <- append([]byte("STATE:"), stateJSON...)
+		if err != nil {
+			log.Printf("failed to marshal game state for user %s: %v", userID, err)
+			return
 		}
+		client.Channel <- append([]byte("STATE:"), stateJSON...)
 	}
 
 	go client.WritePump()

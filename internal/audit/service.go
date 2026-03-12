@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/jerryjuche/alpha-game/internal/scoring"
 	"github.com/jmoiron/sqlx"
 )
 
 type AuditService struct {
-	DBConn *sqlx.DB
+	DBConn  *sqlx.DB
+	Scoring *scoring.ScoringService
 }
 
 type PendingSubmission struct {
@@ -18,8 +20,11 @@ type PendingSubmission struct {
 	Category    string
 }
 
-func NewAuditService(db *sqlx.DB) *AuditService {
-	return &AuditService{DBConn: db}
+func NewAuditService(db *sqlx.DB, s *scoring.ScoringService) *AuditService {
+	return &AuditService{
+		DBConn:  db,
+		Scoring: s,
+	}
 }
 
 func (a *AuditService) GetPendingSubmissions(ctx context.Context) ([]PendingSubmission, error) {
@@ -48,9 +53,16 @@ func (a *AuditService) ApproveSubmission(ctx context.Context, category string, i
 		return fmt.Errorf("error approving submissions, %w", err)
 	}
 
-	_, err = a.DBConn.ExecContext(ctx, "UPDATE game_players SET score = score + $1 WHERE user_id = (SELECT submitted_by FROM submissions WHERE id =$2)", points, submissionID)
+	var playerID, gameID string
+
+	err = a.DBConn.QueryRowContext(ctx, "SELECT s.submitted_by, r.game_id FROM submissions s JOIN rounds r ON r.id = s.round_id WHERE s.id = $1", submissionID).Scan(&playerID, &gameID)
 	if err != nil {
-		return fmt.Errorf("Error adding points, %w", err)
+		return fmt.Errorf("error fetching submission details: %w", err)
+	}
+
+	err = a.Scoring.AwardPoints(ctx, playerID, gameID, points)
+	if err != nil {
+		return fmt.Errorf("error awarding points: %w", err)
 	}
 
 	_, err = a.DBConn.ExecContext(ctx, "INSERT INTO audit_log (submission_id, reviewed_by, decision) VALUES ($1, $2, $3)", submissionID, auditorID, "approved")
@@ -62,6 +74,7 @@ func (a *AuditService) ApproveSubmission(ctx context.Context, category string, i
 	if err != nil {
 		return fmt.Errorf("error inserting into word_db", err)
 	}
+
 	return nil
 }
 

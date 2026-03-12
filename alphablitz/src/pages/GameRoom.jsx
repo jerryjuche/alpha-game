@@ -1,5 +1,6 @@
-import { useFetcher, useParams } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
+import { useParams } from "react-router-dom"
+
 import './GameRoom.css'
 
 function GameRoom() {
@@ -18,10 +19,13 @@ function GameRoom() {
     submitRef.current = submitAnswers
     const gamePhaseRef = useRef(gamePhase)
     const [breakDuration, setBreakDuration] = useState(5)
+    const lastSubmittedRoundRef = useRef("x")
+    const [scores, setScores] = useState({})
+
 
 
     useEffect(() => {
-        const socket = new WebSocket(`ws://localhost:8080/ws/${gameId}?token=${localStorage.getItem('token')}`)
+        const socket = new WebSocket(`${import.meta.env.VITE_WS_URL}/ws/${gameId}?token=${localStorage.getItem('token')}`)
 
         socket.onopen = () => console.log("WS connected")
         socket.onclose = () => console.log("WS closed")
@@ -42,6 +46,7 @@ function GameRoom() {
                 setGamePhase(state.phase)
                 setTimer(state.timer)
                 setGameTime(state.gameTime)
+                setRoundId(state.roundID)
             }
 
             if (data.startsWith("LETTER:")) {
@@ -70,6 +75,12 @@ function GameRoom() {
                 setGamePhase("waiting")
             }
 
+            if (data.startsWith("SCORES:")) {
+                const scores = JSON.parse(data.slice(7))
+                setScores(scores)
+                setGamePhase("break")
+            }
+
         }
 
         return () => socket.close()
@@ -79,13 +90,25 @@ function GameRoom() {
         gamePhaseRef.current = gamePhase
     }, [gamePhase])
 
+    useEffect(() => {
+        if (gameTime === 0) {
+            submitRef.current()
+            setGamePhase("waiting")
+        }
+    }, [gameTime])
+
+    useEffect(() => {
+        if (timer === 0) {
+            submitRef.current()
+        }
+    }, [timer])
+
     // timer for the rounds (10secs) & submits answers automitically
     useEffect(() => {
         const interval = setInterval(() => {
             if (gamePhaseRef.current === "playing") {
                 setTimer(prev => {
                     if (prev <= 1) {
-                        submitRef.current()
                         return 0
                     }
                     return prev - 1
@@ -95,8 +118,6 @@ function GameRoom() {
             if (gamePhaseRef.current !== "waiting") {
                 setGameTime(prev => {
                     if (prev <= 1) {
-                        submitRef.current()
-                        setGamePhase("waiting")
                         return 0
                     }
                     return prev - 1
@@ -117,7 +138,8 @@ function GameRoom() {
 
 
     async function startGame() {
-        await fetch(`http://localhost:8080/game/start`, {
+        await fetch(`${import.meta.env.VITE_API_URL}/game/start`, {
+
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -131,18 +153,20 @@ function GameRoom() {
     }
 
     async function submitAnswers() {
+        if (lastSubmittedRoundRef.current === roundId) return
+        lastSubmittedRoundRef.current = roundId
 
         const submissions = [
-            { round_id: roundId, word: name, category: "name" },
-            { round_id: roundId, word: animal, category: "animal" },
-            { round_id: roundId, word: place, category: "place" },
-            { round_id: roundId, word: thing, category: "thing" },
-            { round_id: roundId, word: food, category: "food" },
+            { round_id: roundId, game_id: gameId, word: name, category: "name" },
+            { round_id: roundId, game_id: gameId, word: animal, category: "animal" },
+            { round_id: roundId, game_id: gameId, word: place, category: "place" },
+            { round_id: roundId, game_id: gameId, word: thing, category: "thing" },
+            { round_id: roundId, game_id: gameId, word: food, category: "food" },
         ]
 
         const results = await Promise.allSettled(
             submissions.map(submission =>
-                fetch('http://localhost:8080/game/submit', {
+                fetch(`${import.meta.env.VITE_API_URL}/game/submit`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -230,6 +254,18 @@ function GameRoom() {
                     <button className="button" disabled={gamePhase !== "playing"} type="button" onClick={submitAnswers}>Submit</button>
                 </div>
             </div>
+            {gamePhase === "break" && (
+                <div>
+                    <h2>Get Ready</h2>
+                    <p>Next Round In {breakDuration}</p>
+                    {Object.entries(scores).map(([userId, points]) => (
+                        <div key={userId}>
+                            {userId} - {points}
+
+                        </div>
+
+                    ))}
+                </div>)}
         </div>
     )
 }
