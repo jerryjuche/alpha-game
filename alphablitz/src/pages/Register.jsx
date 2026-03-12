@@ -11,7 +11,7 @@ function Register() {
 
     async function signUp() {
 
-        const response = await fetch('http://localhost:8080/auth/register', {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/register`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -25,11 +25,13 @@ function Register() {
         })
 
         if (response.status === 201) {
-            navigate('/login')
-        } else {
-            setError("Registration failed, try again later!")
-        }
+            const data = await response.json()
+            localStorage.setItem('token', data.token)
 
+            navigate('/lobby')
+        } else {
+            setError("error creating account")
+        }
     }
 
     return (

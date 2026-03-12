@@ -9,7 +9,7 @@ function Lobby() {
     const [joinInviteCode, setJoinInviteCode] = useState("")
 
     async function createGame() {
-        const response = await fetch('http://localhost:8080/game/create', {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/game/create`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -21,6 +21,7 @@ function Lobby() {
             const data = await response.json()
             setGameId(data.game_id)
             setCreatedInviteCode(data.invite_code)
+            navigate(`/game/${data.game_id}`)
 
         } else {
             setError("Cannot create game")
@@ -29,7 +30,7 @@ function Lobby() {
 
     async function joinGame() {
         console.log(joinInviteCode)
-        const response = await fetch('http://localhost:8080/game/join', {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/game/join`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
