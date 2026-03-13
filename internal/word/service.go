@@ -27,6 +27,10 @@ func NewWordService(db *sqlx.DB) *WordService {
 
 func (w *WordService) AddWord(ctx context.Context, input AddWordInput) error {
 
+	if input.Word == "" {
+		return nil
+	}
+
 	firstLetter := strings.ToUpper(string(input.Word[0]))
 
 	_, err := w.DBConn.ExecContext(ctx, "INSERT INTO word_database (word, category, starts_with, added_by) VALUES ($1, $2, $3, $4)", input.Word, input.Category, firstLetter, input.AddedBy)
@@ -56,9 +60,13 @@ func (w *WordService) DeleteWord(ctx context.Context, wordID string) error {
 }
 
 func (w *WordService) LookupWord(ctx context.Context, word string, category string) (bool, error) {
+	if word == "" {
+		return false, nil
+	}
+
 	var verify string
 	var letter string
-	
+
 	letter = strings.ToUpper(string(word[0]))
 
 	err := w.DBConn.QueryRowContext(ctx, "SELECT id FROM word_database WHERE word = $1 AND category = $2 AND starts_with = $3 AND is_approved = true", word, category, letter).Scan(&verify)

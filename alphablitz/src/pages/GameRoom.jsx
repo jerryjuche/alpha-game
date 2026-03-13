@@ -126,9 +126,8 @@ function GameRoom() {
 
             if (gamePhaseRef.current === "break") {
                 setBreakDuration(prev => {
-                    if (prev <= 1) {
-                        return 5
-                    }
+                    if (prev === 1) return 0
+                    
                     return prev - 1
                 })
             }
