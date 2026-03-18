@@ -1,0 +1,223 @@
+/* ============================================================
+   ALPHABLITZ — Design System Foundation
+   Aesthetic: Competitive Arcade Terminal
+   Fonts: Anton (display) + Rajdhani (body) + Space Mono (data)
+   Palette: Near-black · Amber-gold · Electric red · Ice white
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Rajdhani:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+/* ── Tokens ──────────────────────────────────────────────── */
+:root {
+  /* Surfaces */
+  --c-bg:        #08090E;
+  --c-bg-2:      #0F1118;
+  --c-bg-3:      #161820;
+  --c-bg-4:      #1D1F2A;
+
+  /* Accent gold */
+  --c-gold:      #F5C842;
+  --c-gold-dim:  #C9A235;
+  --c-gold-glow: rgba(245,200,66,0.25);
+  --c-gold-glow-strong: rgba(245,200,66,0.5);
+
+  /* Danger red */
+  --c-red:       #FF2D55;
+  --c-red-glow:  rgba(255,45,85,0.3);
+
+  /* Success */
+  --c-green:     #00D4A4;
+
+  /* Text */
+  --c-text:      #FFFFFF;
+  --c-text-2:    #C8D0E0;
+  --c-text-3:    #606880;
+  --c-text-4:    #3A3F52;
+
+  /* Borders */
+  --c-border:    rgba(255,255,255,0.06);
+  --c-border-2:  rgba(255,255,255,0.12);
+
+  /* Fonts */
+  --f-display: 'Anton', sans-serif;
+  --f-body:    'Rajdhani', sans-serif;
+  --f-mono:    'Space Mono', monospace;
+
+  /* Radius */
+  --r-sm:  4px;
+  --r-md:  8px;
+  --r-lg:  12px;
+  --r-xl:  16px;
+  --r-2xl: 24px;
+
+  /* Transitions */
+  --t-fast:   120ms ease;
+  --t-base:   220ms ease;
+  --t-spring: cubic-bezier(0.34,1.56,0.64,1);
+}
+
+/* ── Reset ───────────────────────────────────────────────── */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+html { font-size:16px; -webkit-font-smoothing:antialiased; }
+
+body {
+  font-family: var(--f-body);
+  background: var(--c-bg);
+  color: var(--c-text);
+  cursor: crosshair;
+}
+
+button { cursor: crosshair; }
+
+/* ── Scrollbar ───────────────────────────────────────────── */
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--c-gold-dim); border-radius:2px; }
+
+/* ── Global keyframes ────────────────────────────────────── */
+
+@keyframes scanline {
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+@keyframes flicker {
+  0%,100% { opacity:1; }
+  92%      { opacity:1; }
+  93%      { opacity:0.85; }
+  94%      { opacity:1; }
+  96%      { opacity:0.9; }
+  97%      { opacity:1; }
+}
+
+@keyframes glitch-1 {
+  0%,100% { clip-path: inset(0 0 100% 0); transform: translate(0); }
+  20%     { clip-path: inset(10% 0 85% 0); transform: translate(-4px, 0); }
+  40%     { clip-path: inset(40% 0 50% 0); transform: translate(4px, 0); }
+  60%     { clip-path: inset(70% 0 15% 0); transform: translate(-2px, 0); }
+  80%     { clip-path: inset(85% 0 5%  0); transform: translate(2px, 0); }
+}
+
+@keyframes glitch-2 {
+  0%,100% { clip-path: inset(0 0 100% 0); transform: translate(0); }
+  20%     { clip-path: inset(5%  0 90% 0); transform: translate(4px,  0); }
+  40%     { clip-path: inset(30% 0 60% 0); transform: translate(-4px, 0); }
+  60%     { clip-path: inset(60% 0 30% 0); transform: translate(3px,  0); }
+  80%     { clip-path: inset(80% 0 10% 0); transform: translate(-3px, 0); }
+}
+
+@keyframes spin-letter {
+  0%   { transform: rotateX(0deg);    opacity:1; }
+  45%  { transform: rotateX(90deg);   opacity:0; }
+  55%  { transform: rotateX(-90deg);  opacity:0; }
+  100% { transform: rotateX(0deg);    opacity:1; }
+}
+
+@keyframes slide-up {
+  from { opacity:0; transform:translateY(32px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+@keyframes slide-down {
+  from { opacity:0; transform:translateY(-20px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+@keyframes fade-in {
+  from { opacity:0; }
+  to   { opacity:1; }
+}
+
+@keyframes scale-in {
+  from { opacity:0; transform:scale(0.88); }
+  to   { opacity:1; transform:scale(1); }
+}
+
+@keyframes pulse-gold {
+  0%,100% { box-shadow: 0 0 0 0 var(--c-gold-glow); }
+  50%      { box-shadow: 0 0 0 10px transparent; }
+}
+
+@keyframes pulse-border {
+  0%,100% { border-color: var(--c-border); }
+  50%      { border-color: var(--c-gold-dim); }
+}
+
+@keyframes timer-danger {
+  0%,100% { color: var(--c-red); text-shadow: 0 0 20px var(--c-red-glow); }
+  50%      { color:#fff; text-shadow: none; }
+}
+
+@keyframes streak-in {
+  from { opacity:0; transform:scaleX(0); transform-origin:left; }
+  to   { opacity:1; transform:scaleX(1); }
+}
+
+@keyframes bounce-in {
+  0%   { opacity:0; transform:scale(0.4); }
+  60%  { transform:scale(1.1); }
+  80%  { transform:scale(0.95); }
+  100% { opacity:1; transform:scale(1); }
+}
+
+/* ── Shared: Scan-line overlay ───────────────────────────── */
+.scanlines {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 999;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.15) 2px,
+    rgba(0,0,0,0.15) 4px
+  );
+  animation: flicker 8s infinite;
+}
+
+/* Moving scan bar */
+.scanlines::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(245,200,66,0.015),
+    transparent
+  );
+  animation: scanline 6s linear infinite;
+}
+
+/* ── Shared: Noise grain overlay ─────────────────────────── */
+.grain::before {
+  content: '';
+  position: fixed;
+  inset: -50%;
+  width: 200%;
+  height: 200%;
+  pointer-events: none;
+  z-index: 998;
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-size: 256px 256px;
+}
+
+/* ── Shared: Corner bracket decoration ───────────────────── */
+.bracket {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-color: var(--c-gold-dim);
+  border-style: solid;
+  opacity: 0.6;
+}
+.bracket--tl { top:0; left:0;  border-width: 2px 0 0 2px; }
+.bracket--tr { top:0; right:0; border-width: 2px 2px 0 0; }
+.bracket--bl { bottom:0; left:0;  border-width: 0 0 2px 2px; }
+.bracket--br { bottom:0; right:0; border-width: 0 2px 2px 0; }
