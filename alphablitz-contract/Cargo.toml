@@ -1,0 +1,14 @@
+[workspace]
+resolver = "2"
+members = ["contracts/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/jerryjuche/alphablitz-contract"
+
+[workspace.dependencies]
+soroban-sdk = "21.5.0"
+soroban-sdk-test = { version = "21.5.0", features = ["testutils"] }
+serde = { version = "1.0", features = ["derive"] }
